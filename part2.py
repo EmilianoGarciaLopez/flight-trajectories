@@ -1,136 +1,158 @@
-import math
 import matplotlib.pyplot as plt
-
-from matplotlib import rcParams
-
-rcParams.update({'figure.autolayout': True})
+import numpy as np
 
 plt.dpi = 500
 
-G = 8.65e-13
-M_EARTH = 5.97e24
-M_MOON = 7.35e22
-D_ME = 384400
-R_MOON = 1737.1
-LAGRANGE_POINT = 346007.85
+constants = {
+    'GRAVITY': 8.65e-13,
+    'MASS_OF_EARTH': 5.97e24,
+    'MASS_OF_MOON': 7.35e22,
+    'DISTANCE_MOON_TO_EARTH': 384400,
+    'RADIUS_MOON': 1737.1,
+    'LAGRANGE_POINT': 346007.85,
+    'Gm_E': 5.16405000e12,
+    'Gm_M': 6.3577500e10,
+    'RADIUS_OF_EARTH': 6378}
 
 
 class Function:
-    def __init__(self, start_value_x, start_value_y, step_size, dydx_x, dydx_y, dydx_start_x, dydx_start_y,
-                 target_value_x, target_value_y):
-        self.start_value_x = start_value_x
-        self.start_value_y = start_value_y
+    def __init__(self, start_value, step_size, dydx, dydx_start, target_value):
+        self.start_value = start_value
         self.step_size = step_size
-        self.dydx_x = dydx_x
-        self.dydx_y = dydx_y
-        self.dydx_start_x = dydx_start_x
-        self.dydx_start_y = dydx_start_y
-        self.target_value_x = target_value_x
-        self.target_value_y = target_value_y
-
-        self.current_value_x = self.start_value_x
-        self.current_value_y = self.start_value_y
-
-        self.dydx_current_value_x = self.dydx_start_x
-        self.dydx_current_value_y = self.dydx_start_y
-
-        self.time_history = []
-        self.displacement_history_x = []
-        self.displacement_history_y = []
-        self.displacement_history_total = []
-        self.velocity_history = []
-        self.acceleration_history = []
-        self.max_displacement_x = 0
+        self.dydx = dydx
+        self.dydx_start = dydx_start
+        self.dydx_current_value = dydx_start
+        self.target_value = target_value
+        self.current_value = start_value
 
     def euler(self):
-        self.displacement_history_total.append(math.sqrt(self.current_value_x ** 2 + self.current_value_y ** 2))
-        self.current_value_x += self.step_size * self.dydx_current_value_x
-        self.current_value_y += self.step_size * self.dydx_current_value_y
+        self.current_value += self.step_size * self.dydx_current_value + 0.5 * (self.step_size ** 2) * self.dydx(
+            self.current_value)
+
+    # print(self.current_value)
 
     def velocity(self):
-        self.velocity_history.append(math.sqrt(self.dydx_current_value_x ** 2 + self.dydx_current_value_y ** 2))
-        self.acceleration_history.append(math.sqrt(
-            self.dydx_x(self.current_value_x, self.current_value_y) ** 2 + self.dydx_y(self.current_value_x,
-                                                                                       self.current_value_y) ** 2))
-        self.dydx_current_value_x += self.step_size * self.dydx_x(self.current_value_x, self.current_value_y)
-        self.dydx_current_value_y += self.step_size * self.dydx_y(self.current_value_x, self.current_value_y)
+        self.dydx_current_value += self.step_size * self.dydx(self.current_value)
 
     def target_in_range(self):
-        for i in range(250000):
-            self.displacement_history_x.append(self.current_value_x)
-            self.displacement_history_y.append(self.current_value_y)
-            if self.current_value_x > self.max_displacement_x:
-                self.max_displacement_x = self.current_value_x
-            if self.current_value_x <= self.target_value_x and self.current_value_y <= self.target_value_y and self.max_displacement_x >= D_ME:
-                return self.current_value_x, self.current_value_y, i / 1000, self.dydx_current_value_x, self.dydx_current_value_y
-            self.time_history.append(i / 1000)
+        for i in range(1000000):
+            if self.current_value >= self.target_value:
+                return self.current_value, i / 1000, self.dydx_current_value, self.target_value, self.dydx(
+                    self.current_value)
             self.euler()
             self.velocity()
-        # return -1
+        return -1
 
 
-def acceleration_x(x, y):
-    return ((-G * M_EARTH * x) / (
-            math.sqrt((x ** 2) + (y ** 2)) * ((x ** 2) + (y ** 2)))) + (((D_ME - x) *
-                                                                         G * M_MOON) / (math.sqrt(
-        (D_ME - x) ** 2 + (y ** 2)) * (((D_ME - x) ** 2) + (y ** 2))))
+class VFunction:
+    def __init__(self, start_valueX, start_valueY, step_size, d2ydx2_X, d2ydx2_Y, dydx_startX, dydx_startY,
+                 secondOrder):
+        # self.start_valueX = start_valueX
+        # self.start_valueY = start_valueY
+        self.start_value = np.array([start_valueX, start_valueY], dtype='float16')
+        self.step_size = step_size
+        self.d2ydx2_X = d2ydx2_X
+        self.d2ydx2_Y = d2ydx2_Y
+        self.dydx_startX = dydx_startX
+        self.dydx_startY = dydx_startY
+        self.dydx_current_valueX = dydx_startX
+        self.dydx_current_valueY = dydx_startY
+        self.current_valueX = self.start_value[0]
+        self.current_valueY = self.start_value[1]
+        self.points = np.array([[0.0, self.start_value[0], self.start_value[1]]])
+        self.secondOrder = secondOrder
+
+    def v_euler(self):
+        second_order_x = 0
+        second_order_y = 0
+        if self.secondOrder > 0:
+            second_order_x = 0.5 * self.d2ydx2_X(self.current_valueX, self.current_valueY) * self.step_size ** 2
+            second_order_y = 0.5 * self.d2ydx2_Y(self.current_valueX, self.current_valueY) * self.step_size ** 2
+
+        self.current_valueX += self.step_size * self.dydx_current_valueX + second_order_x
+        self.current_valueY += self.step_size * self.dydx_current_valueY + second_order_y
+        # print(self.current_value)
+
+    def v_velocity(self):
+        self.dydx_current_valueX += self.step_size * self.d2ydx2_X(self.current_valueX, self.current_valueY)
+        self.dydx_current_valueY += self.step_size * self.d2ydx2_Y(self.current_valueX, self.current_valueY)
+
+    def target_in_range(self):
+        for i in range(500000):
+            if self.current_valueX ** 2 + self.current_valueY ** 2 < 6370 ** 2:
+                return self.current_valueX, i / 1000
+            if i / 10 - np.modf(i / 10)[1] < 1 / 10:
+                # self.points = np.insert(self.points,,[i/1000,self.current_valueX,self.current_valueY],axis=0)
+                self.points = np.concatenate((self.points, [[i / 1000, self.current_valueX, self.current_valueY]]),
+                                             axis=0)
+            # print(self.points)
+            # print(self.current_valueX)
+            self.v_euler()
+            self.v_velocity()
+        return -1
 
 
-def acceleration_y(x, y):
-    return ((-G * M_EARTH * y) / (
-            math.sqrt(x ** 2 + y ** 2) * (x ** 2 + y ** 2))) + ((y *
-                                                                 -G * M_MOON) / (
-                                                                        math.sqrt((D_ME - x) ** 2 + (y ** 2)) * (
-                                                                        ((D_ME - x) ** 2) + (y ** 2))))
+def acceleration(x): return (constants['Gm_M'] / ((constants['DISTANCE_MOON_TO_EARTH'] - x) ** 2)
+                             - constants['Gm_E'] / (x ** 2))
+
+
+def acceleration_x(x, y): return constants['Gm_M'] * (constants['DISTANCE_MOON_TO_EARTH'] - x) / \
+                                 pow((constants['DISTANCE_MOON_TO_EARTH'] - x) ** 2 + y ** 2, 3 / 2) \
+                                 - constants['Gm_E'] * x / pow(x ** 2 + y ** 2, 3 / 2)
+
+
+def acceleration_y(x, y): return -constants['Gm_M'] * y / pow((constants['DISTANCE_MOON_TO_EARTH'] - x) ** 2 + y ** 2,
+                                                              3 / 2) \
+                                 - constants['Gm_E'] * y / pow(x ** 2 + y ** 2, 3 / 2)
 
 
 if __name__ == '__main__':
-    f = Function(6563, 0, 0.001, acceleration_x, acceleration_y, 39230, -1275, 6563, 0)
-    print(f.target_in_range())
-
-    plt.figure(1)
-    plt.plot(f.displacement_history_x, f.displacement_history_y)
-    circle1 = plt.Circle((0, 0), 6563, color='orange', fill=False)
-    circle2 = plt.Circle((D_ME, 0), 1849, color='r', fill=False)
-    plt.xlim(-20000, 500000)
-    plt.ylim(-65000, 80000)
-    plt.ylabel('Displacement (km)')
-    plt.ylabel('Displacement (km)')
+    GravityFunction = Function(6371, 0.001, acceleration, 40000,
+                               (constants['DISTANCE_MOON_TO_EARTH'] - constants['RADIUS_MOON']))
+    print(GravityFunction.target_in_range())
+    SlingShot = VFunction(6563, 0, 0.001, acceleration_x, acceleration_y, 39210.0, -2100.0, 0)
+    SlingShotSecondOrder = VFunction(6563, 0, 0.001, acceleration_x, acceleration_y, 39210.0, -2100.0, 1)
+    # SlingShot2 = VFunction(6563,0,0.001,acceleration_x,acceleration_y,39280.0,-2310.0,0)
+    # SlingShot3 = VFunction(6563,0,0.001,acceleration_x,acceleration_y,39215.0,-2210.0,0)
+    # SlingShot4 = VFunction(6563.0,0,0.001,acceleration_x,acceleration_y,39297.0,-2097.0,0)
+    # SlingShot5 = VFunction(6563.0,0,0.001,acceleration_x,acceleration_y,50000.0,-2000.0,0)
+    print(SlingShot.target_in_range())
+    print(SlingShotSecondOrder.target_in_range())
+    # print(SlingShot2.target_in_range())
+    # print(SlingShot3.target_in_range())
+    # print(SlingShot4.target_in_range())
+    # print(SlingShot5.target_in_range())
+    float_formatter = "{:.3f}".format
+    np.set_printoptions(formatter={'float_kind': float_formatter})
+    # for x in range(len(SlingShot4.points)):
+    #    print(SlingShot4.points[x])
+    x = SlingShot.points[:, 1]
+    y = SlingShot.points[:, 2]
+    x2o = SlingShotSecondOrder.points[:, 1]
+    y2o = SlingShotSecondOrder.points[:, 2]
+    # x2 = SlingShot2.points[:,1]
+    # y2 = SlingShot2.points[:,2]
+    # x3 = SlingShot3.points[:,1]
+    # y3 = SlingShot3.points[:,2]
+    # x4 = SlingShot4.points[:,1]
+    # y4 = SlingShot4.points[:,2]
+    # x5 = SlingShot5.points[:,1]
+    # y5 = SlingShot5.points[:,2]
+    t = np.linspace(0, 6.3, 100)
+    Ex = 6378 * np.cos(t)
+    Ey = 6378 * np.sin(t)
+    Mx = constants['DISTANCE_MOON_TO_EARTH'] + 1849 * np.cos(t)
+    My = 1849 * np.sin(t)
+    plt.plot(Mx, My)
+    plt.plot(Ex, Ey)
+    plt.plot(x, y)
+    plt.plot(x2o, y2o)
+    # plt.plot(x2,y2)
+    # plt.plot(x3,y3)
+    # plt.plot(x4,y4)
+    # plt.plot(x5,y5)
+    plt.ylim([-70000, 90000])
+    plt.xlim([-42000, 500000])
     plt.title('Flight Path')
-
-    plt.annotate('1', xy=(204996.8327792941, -11495.180125773899))
-    plt.annotate('2', xy=(292228.0650928426, -17148.717065768455))
-    plt.annotate('3', xy=(347977.8642659397, -19444.202147591983))
-    plt.annotate('4', xy=(380949.7141145375, 11086.064512151816))
-    plt.annotate('5', xy=(328582.2212321744, 12989.859997015128))
-    plt.annotate('6', xy=(263400.4594528887, 6491.854550348502))
-    plt.annotate('7', xy=(154465.5669197549, -1233.7123160741326))
-    plt.annotate('8', xy=(6546.932540818372, -2545.504565159628))
-
-    plt.gca().add_patch(circle1)
-    plt.gca().add_patch(circle2)
     plt.savefig('./Plots/FlightPath.png')
     plt.show()
-
-    plt.figure(2)
-    plt.plot(f.time_history, f.velocity_history)
-    plt.xlabel('Time (h)')
-    plt.ylabel('Velocity (km/h)')
-    plt.title('Velocity2D')
-    plt.savefig('./Plots/Velocity2D.png', bbox_inches='tight')
-    plt.show()
-
-    plt.figure(3)
-    plt.plot(f.time_history, f.acceleration_history)
-    plt.xlabel('Time (h)')
-    plt.ylabel('Acceleration (km/h^2)')
-    plt.title('Acceleration2D')
-    plt.savefig('./Plots/Acceleration2D.png', bbox_inches='tight')
-    plt.show()
-
-    plt.figure(4)
-    plt.plot(f.time_history, f.displacement_history_total)
-    plt.xlabel('Time (h)')
-    plt.ylabel('Displacement (km)')
-    plt.title('Displacement2D')
-    plt.savefig('./Plots/Displacement2D.png', bbox_inches='tight')
