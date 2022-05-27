@@ -61,7 +61,7 @@ class Function:
             self.displacement_history_y.append(self.current_value_y)
             if self.current_value_x > self.max_displacement_x:
                 self.max_displacement_x = self.current_value_x
-            if self.current_value_x <= self.target_value_x and self.current_value_y <= self.target_value_y and self.max_displacement_x >= D_ME:  # TODO: updated displacement history. Make it into two lists
+            if self.current_value_x <= self.target_value_x and self.current_value_y <= self.target_value_y and self.max_displacement_x >= D_ME:
                 return self.current_value_x, self.current_value_y, i / 1000, self.dydx_current_value_x, self.dydx_current_value_y
             self.time_history.append(i / 1000)
             self.euler()
@@ -91,7 +91,7 @@ if __name__ == '__main__':
     plt.figure(1)
     plt.plot(f.displacement_history_x, f.displacement_history_y)
     circle1 = plt.Circle((0, 0), 6563, color='orange', fill=False)
-    circle2 = plt.Circle((D_ME, 0), R_MOON, color='r', fill=False)
+    circle2 = plt.Circle((D_ME, 0), 1849, color='r', fill=False)
     plt.xlim(-20000, 500000)
     plt.ylim(-65000, 80000)
     plt.ylabel('Displacement (km)')
