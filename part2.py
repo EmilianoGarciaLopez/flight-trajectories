@@ -98,6 +98,15 @@ if __name__ == '__main__':
     plt.ylabel('Displacement (km)')
     plt.title('Flight Path')
 
+    plt.annotate('1', xy=(204996.8327792941, -11495.180125773899))
+    plt.annotate('2', xy=(292228.0650928426, -17148.717065768455))
+    plt.annotate('3', xy=(347977.8642659397, -19444.202147591983))
+    plt.annotate('4', xy=(380949.7141145375, 11086.064512151816))
+    plt.annotate('5', xy=(328582.2212321744, 12989.859997015128))
+    plt.annotate('6', xy=(263400.4594528887, 6491.854550348502))
+    plt.annotate('7', xy=(154465.5669197549, -1233.7123160741326))
+    plt.annotate('8', xy=(6546.932540818372, -2545.504565159628))
+
     plt.gca().add_patch(circle1)
     plt.gca().add_patch(circle2)
     plt.savefig('./Plots/FlightPath.png')
