@@ -100,7 +100,7 @@ if __name__ == '__main__':
 
     plt.gca().add_patch(circle1)
     plt.gca().add_patch(circle2)
-    plt.savefig('FlightPath.png')
+    plt.savefig('./Plots/FlightPath.png')
     plt.show()
 
     plt.figure(2)
